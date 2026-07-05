@@ -1,0 +1,10 @@
+﻿node_modules
+.nuxt
+.output
+.playwright
+coverage
+test-results
+playwright-report
+.env
+*.log
+.pnpm-store

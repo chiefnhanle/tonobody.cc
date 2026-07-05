@@ -1,0 +1,19 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+body { @apply bg-stone-50 text-stone-950 antialiased dark:bg-neutral-950 dark:text-stone-100; }
+.tiptap { @apply min-h-[420px] outline-none; }
+.tiptap p { @apply my-3 leading-7; }
+.tiptap h1 { @apply mb-4 mt-6 text-3xl font-semibold; }
+.tiptap h2 { @apply mb-3 mt-5 text-2xl font-semibold; }
+.tiptap h3 { @apply mb-2 mt-4 text-xl font-semibold; }
+.tiptap ul { @apply my-3 list-disc pl-6; }
+.tiptap ol { @apply my-3 list-decimal pl-6; }
+.tiptap blockquote { @apply my-4 border-l-4 border-stone-300 pl-4 text-stone-700 dark:border-stone-700 dark:text-stone-300; }
+.tiptap code { @apply rounded bg-stone-200 px-1 py-0.5 font-mono text-sm dark:bg-neutral-800; }
+.tiptap pre { @apply my-4 overflow-x-auto rounded bg-neutral-900 p-4 text-stone-100; }
+.tiptap a { @apply text-teal-700 underline decoration-teal-700/40 underline-offset-4 dark:text-teal-300; }
+.tiptap hr { @apply my-8 border-stone-300 dark:border-stone-700; }
