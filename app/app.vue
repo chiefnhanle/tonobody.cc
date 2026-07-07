@@ -7,6 +7,8 @@ const htmlStyle = computed(() => {
 })
 
 useHead({
+  title: 'tonobody.cc',
+  titleTemplate: (title) => (title && title !== 'tonobody.cc' ? `${title} — tonobody.cc` : 'tonobody.cc'),
   htmlAttrs: { style: htmlStyle },
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

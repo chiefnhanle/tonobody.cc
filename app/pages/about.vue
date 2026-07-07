@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useHead({ title: 'About — Thought Vault' })
+useHead({ title: 'About' })
 </script>
 
 <template>
@@ -8,13 +8,13 @@ useHead({ title: 'About — Thought Vault' })
       <p class="text-sm uppercase tracking-[0.22em] text-[var(--tv-dim)]">About</p>
       <h1 class="font-doodle text-4xl text-[var(--tv-text)]">A place to empty your head.</h1>
       <p class="text-lg leading-8 text-[var(--tv-muted)]">
-        Thought Vault is a scratchpad that forgets on purpose. Type out whatever's rattling around, then
+        tonobody.cc is a scratchpad that forgets on purpose. Type out whatever's rattling around, then
         <span class="font-mono text-[var(--tv-text)]">/scrap</span> it — no save, no history, no account.
         Just a page, a moment, and a clean slate after.
       </p>
       <div class="flex flex-wrap items-center gap-4 pt-2">
         <a
-          href="https://github.com/chiefnhanle/thought-vault"
+          href="https://github.com/chiefnhanle/tonobody.cc"
           target="_blank"
           rel="noopener noreferrer"
           class="tv-doodle-panel rounded-full px-5 py-2 font-doodle text-base text-[var(--tv-text)] transition-transform hover:-rotate-1"

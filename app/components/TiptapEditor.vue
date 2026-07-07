@@ -17,6 +17,7 @@ const emit = defineEmits<{
   'ghost-request': []
   'theme-request': []
   'about-request': []
+  'capture-request': []
 }>()
 
 interface Command {
@@ -38,6 +39,7 @@ const commands = computed<Command[]>(() => [
   { name: 'ghost', hint: 'Add your own starting prompts', run: () => emit('ghost-request') },
   { name: 'theme', hint: 'Pick a color scheme', run: () => emit('theme-request') },
   { name: 'about', hint: 'Read the mission, find the source', run: () => emit('about-request') },
+  { name: 'capture', hint: 'Download a cozy snapshot of this page', run: () => emit('capture-request') },
   { name: 'help', hint: 'Show every command', run: () => emit('help-request') },
   { name: 'bold', hint: 'Toggle bold text', run: () => editor.value?.chain().focus().toggleBold().run() },
   { name: 'italic', hint: 'Toggle italic text', run: () => editor.value?.chain().focus().toggleItalic().run() },
@@ -166,7 +168,11 @@ function focus() {
   editor.value?.chain().focus().run()
 }
 
-defineExpose({ focus })
+function getText() {
+  return editor.value?.getText() ?? ''
+}
+
+defineExpose({ focus, getText })
 </script>
 
 <template>
@@ -180,7 +186,7 @@ defineExpose({ focus })
         v-for="(line, index) in visibleGhosts"
         :key="`${index}-${line}`"
         class="tv-ghost-line"
-        :style="{ opacity: index === 0 ? 0.4 : index === 1 ? 0.2 : 0.1 }"
+        :style="{ opacity: index === 0 ? 1 : index === 1 ? 0.7 : 0.45 }"
       >
         {{ line }}
       </p>

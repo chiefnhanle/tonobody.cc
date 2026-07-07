@@ -6,15 +6,16 @@ import {
   applyCharDelta, decay, barPercent
 } from '~/utils/bar'
 import { THEMES } from '~/utils/themes'
+import { renderCaptureCanvas, downloadCanvas } from '~/utils/capture'
 
 type ModalName = 'help' | 'bar' | 'ghost' | 'theme' | null
-interface EditorHandle { focus: () => void }
+interface EditorHandle { focus: () => void, getText: () => string }
 
 const html = ref('<p></p>')
 const modal = ref<ModalName>(null)
 const status = ref('')
 const editorRef = ref<EditorHandle | null>(null)
-const { themeId, setTheme } = useColorScheme()
+const { theme, setTheme, themeId } = useColorScheme()
 
 // Momentum bar state.
 const fill = ref(0)
@@ -35,6 +36,7 @@ const helpCommands = [
   ['/ghost', 'add your own starting prompts'],
   ['/theme', 'pick a color scheme'],
   ['/about', 'read the mission, find the source'],
+  ['/capture', 'download a cozy snapshot of this page'],
   ['/bold', 'toggle bold text'],
   ['/italic', 'toggle italic text'],
   ['/list', 'start a bullet list'],
@@ -110,20 +112,41 @@ function removeGhost(index: number) {
   ghostLines.value = ghostLines.value.filter((_, i) => i !== index)
   if (ghostIndex.value >= ghostLines.value.length) ghostIndex.value = 0
 }
+
+// A deliberate, one-off export the user asks for — not automatic persistence.
+// Nothing leaves the browser: the image is built and downloaded client-side.
+async function captureSnapshot() {
+  const text = editorRef.value?.getText() ?? ''
+  if (!text.trim()) {
+    flashStatus("there's nothing to capture yet")
+    return
+  }
+  const vars = theme.value.vars
+  const canvas = await renderCaptureCanvas(text, {
+    bg: vars['--tv-bg'],
+    text: vars['--tv-text'],
+    ink: vars['--tv-ink']
+  })
+  downloadCanvas(canvas, `tonobody-${Date.now()}.png`)
+  flashStatus('captured — check your downloads')
+}
 </script>
 
 <template>
-  <section class="min-h-screen px-8 py-20 sm:px-12 sm:py-24 lg:px-20 lg:py-28">
+  <section class="h-screen overflow-hidden px-8 py-20 sm:px-12 sm:py-24 lg:px-20 lg:py-28">
     <!-- Momentum bar: a draggable, clickable blob that fills as you type and drains slowly with time. Top it off. -->
     <MomentumBar :progress="progress" :is-full="isFull" />
 
-    <div class="mx-auto flex min-h-[calc(100vh-10rem)] max-w-3xl flex-col justify-center">
+    <!-- The writing area is a bounded, self-scrolling box — never lets typed
+         content grow the whole page, so it can't drift into the bar's space
+         no matter how much you type or where the bar is docked. -->
+    <div class="mx-auto flex h-full max-w-3xl flex-col justify-center">
       <TiptapEditor
         ref="editorRef"
         v-model="html"
         :ghost-lines="ghostLines"
         :ghost-index="ghostIndex"
-        class="w-full"
+        class="min-h-0 w-full overflow-y-auto"
         @char-count="onCharCount"
         @submit-request="resetPage"
         @help-request="modal = 'help'"
@@ -131,6 +154,7 @@ function removeGhost(index: number) {
         @ghost-request="modal = 'ghost'"
         @theme-request="modal = 'theme'"
         @about-request="navigateTo('/about')"
+        @capture-request="captureSnapshot"
       />
     </div>
 
