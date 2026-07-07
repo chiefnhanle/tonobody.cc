@@ -12,7 +12,9 @@ tonobody.cc is a deliberately forgetful scratchpad. You type whatever is on your
 
 ## What it deliberately does not do
 
-There is no storage, no persistence, no memory. No files, no database, no browser storage, no accounts, no network calls, no telemetry. Close the tab and it's gone.
+There is no storage, no persistence, no memory. No database, no browser storage, no accounts, no network calls, no telemetry. Close the tab and it's gone.
+
+The one exception is `/capture`, and even that keeps the promise: it never writes anything on its own and never transmits. It only builds a PNG in your browser and hands it to you as a download when you explicitly ask — see [Capture](#capture).
 
 ## Slash is the interface
 
@@ -25,6 +27,7 @@ Everything lives behind `/` commands typed into the page — there are no visibl
 | `/ghost`  | add your own starting prompts          |
 | `/theme`  | pick a color scheme                    |
 | `/about`  | read the mission, find the source      |
+| `/capture`| download a cozy snapshot of the page as an image |
 | `/bold`   | toggle bold text                       |
 | `/italic` | toggle italic text                     |
 | `/list`   | start a bullet list                    |
@@ -36,6 +39,12 @@ Everything lives behind `/` commands typed into the page — there are no visibl
 ## The momentum bar
 
 The bar rewards momentum. Every character you type pushes it up; time gently pulls it back down. You never lose progress by editing or deleting — only by pausing. Use `/bar` to set how big the goal is (in characters) and how fast it drains.
+
+## Capture
+
+`/capture` downloads a cozy image of whatever is on the page — a deliberate, one-off keepsake you ask for, not automatic saving. The snapshot is drawn to look like a warm surveillance still: your text in a handwritten font, a soft vignette and film grain, viewfinder corner brackets, and a little camera-style date stamp. It uses the colors of your current `/theme`.
+
+Everything happens in your browser on a `<canvas>` — nothing is uploaded or stored server-side. The result is saved to your downloads as `tonobody-<timestamp>.png`. If the page is empty there's nothing to capture, and it'll tell you so. The rendering logic lives in `app/utils/capture.ts`.
 
 ## Ghost lines
 
@@ -72,14 +81,45 @@ pnpm test
 pnpm test:e2e
 ```
 
-## Deploying (Cloudflare Pages)
+## Deploying (Cloudflare Workers)
 
-There's no server-side logic anywhere in this app — no API routes, no server-only data — so it deploys as a plain static site rather than needing Cloudflare's Workers/Functions runtime.
+There's no server-side logic anywhere in this app — no API routes, no server-only data — so every route is prerendered to a static file. When Cloudflare builds it, Nuxt/Nitro auto-selects the `cloudflare-module` preset and wraps those static files in a tiny Worker whose only job is to serve them (via a Workers **Static Assets** binding). You deploy that Worker; there's no separately-hosted origin.
 
-Cloudflare Pages build settings:
+Deploy is driven by [Wrangler](https://developers.cloudflare.com/workers/wrangler/) with the committed `wrangler.jsonc`. Point a Cloudflare **Workers** project (Workers & Pages → *Create* → *Import a repository* → *Workers*, i.e. "Workers Builds") at this repo with:
 
 - **Build command:** `pnpm run generate`
-- **Build output directory:** `.output/public`
+- **Deploy command:** `npx wrangler deploy`
 - **Node version:** 22 (pinned in `.node-version`; Cloudflare also picks up `packageManager` for pnpm automatically)
 
+`wrangler.jsonc` at the repo root is what makes the bare `npx wrangler deploy` work: it points `main` at `.output/server/index.mjs` and `assets` at `.output/public` with root-relative paths, and enables the `nodejs_compat` flag the Worker needs. Without it, Wrangler falls back to Nitro's generated `.output/server/wrangler.json`, whose relative `main: "index.mjs"` resolves against the repo root and fails the deploy with *"entry-point file at index.mjs was not found."*
+
+To deploy by hand from your own machine (after `wrangler login`):
+
+```bash
+pnpm run generate
+npx wrangler deploy        # or: npx wrangler versions upload  (staged, no traffic shift)
+```
+
 `/about` is only reachable via a client-side slash command rather than a real link, so it's listed explicitly in `nitro.prerender.routes` (`nuxt.config.ts`) to make sure the static crawler generates it — if you add more pages that aren't linked with a real `<a>`/`<NuxtLink>`, add them there too.
+
+## Pointing your domain at it
+
+Once a deploy succeeds, the Worker is live at `https://<worker-name>.<your-subdomain>.workers.dev`. To serve it from `tonobody.cc`, add a **custom domain** to the Worker — Cloudflare provisions the DNS record and TLS certificate for you:
+
+1. **Get the domain onto Cloudflare first.** In the dashboard, *Add a site*, enter `tonobody.cc`, and at your registrar replace the nameservers with the two Cloudflare gives you. Wait until the zone shows **Active**. (Skip this step if the domain is already on your Cloudflare account.)
+2. **Attach the domain to the Worker.** Open the Worker → **Settings** → **Domains & Routes** → **Add** → **Custom Domain**. Enter `tonobody.cc` (add `www.tonobody.cc` too if you want it). Cloudflare creates the proxied DNS records and issues the certificate automatically — no manual `CNAME`/`A` record needed.
+3. **Wait for the cert.** It's usually ready within a minute or two; the domain flips to **Active** in that panel. Then `https://tonobody.cc` serves the app.
+
+Prefer the CLI? The same thing lives in `wrangler.jsonc` — add a `routes` entry and it's applied on the next `npx wrangler deploy`:
+
+```jsonc
+"routes": [
+  { "pattern": "tonobody.cc", "custom_domain": true }
+]
+```
+
+Notes:
+
+- The zone must be on the **same Cloudflare account** as the Worker.
+- A **Custom Domain** (above) is the simple path and terminates directly on the Worker. A **Route** (e.g. `tonobody.cc/*`) is the other option — more flexible, but it needs a matching proxied (orange-cloud) DNS record to already exist for that hostname.
+- Registrar propagation of nameservers in step 1 can take anywhere from minutes to a day; steps 2–3 are near-instant once the zone is Active.
