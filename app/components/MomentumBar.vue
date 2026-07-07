@@ -5,6 +5,10 @@
 // top/bottom, vertical along left/right). Drop it away from every edge and it
 // stays a floating marble. Position/dock/shape are session-only state,
 // consistent with the app's no-persistence rule.
+//
+// On touch devices, dragging is disabled entirely — free-dragging a small
+// target with a finger is fiddly and it fights with scrolling. Instead, a tap
+// just toggles it between its last bar dock and a circle in place.
 
 const props = defineProps<{
   progress: number
@@ -34,6 +38,9 @@ const dockFraction = ref(DEFAULT_DOCK_FRACTION)
 const floatingPos = ref({ x: MARGIN, y: MARGIN })
 const dragging = ref(false)
 const viewport = ref({ width: 0, height: 0 })
+const isCoarsePointer = ref(false)
+// Remembers which edge to restore to when a mobile tap turns the circle back into a bar.
+const lastDockEdge = ref<Edge>('top')
 
 const pillRef = ref<HTMLElement | null>(null)
 
@@ -78,6 +85,7 @@ const style = computed(() => ({
 
 onMounted(() => {
   syncViewport()
+  isCoarsePointer.value = window.matchMedia('(pointer: coarse)').matches
   window.addEventListener('resize', onResize)
 })
 
@@ -108,6 +116,7 @@ function centerOnPointer(clientX: number, clientY: number) {
 }
 
 function onPointerDown(event: PointerEvent) {
+  if (isCoarsePointer.value) return // no free-drag on touch; the tap is handled on release
   // Picking it up: pop into a marble centered exactly on the cursor, wherever that was.
   floatingPos.value = centerOnPointer(event.clientX, event.clientY)
   dragging.value = true
@@ -115,11 +124,16 @@ function onPointerDown(event: PointerEvent) {
 }
 
 function onPointerMove(event: PointerEvent) {
-  if (!dragging.value) return
+  if (isCoarsePointer.value || !dragging.value) return
   floatingPos.value = centerOnPointer(event.clientX, event.clientY)
 }
 
 function onPointerUp(event: PointerEvent) {
+  if (isCoarsePointer.value) {
+    toggleMobileShape()
+    return
+  }
+
   dragging.value = false
   pillRef.value?.releasePointerCapture(event.pointerId)
 
@@ -135,10 +149,28 @@ function onPointerUp(event: PointerEvent) {
 
   if (distances[nearestEdge] <= EDGE_SNAP_THRESHOLD) {
     dockEdge.value = nearestEdge
+    lastDockEdge.value = nearestEdge
     dockFraction.value = DOCKED_FRACTION
   } else {
     dockEdge.value = null
   }
+}
+
+function toggleMobileShape() {
+  if (dockEdge.value === null) {
+    // Currently a circle — restore the bar at whichever edge it last docked to.
+    dockEdge.value = lastDockEdge.value
+    dockFraction.value = DOCKED_FRACTION
+    return
+  }
+  // Currently a bar — pop into a circle centered on the bar's current position.
+  lastDockEdge.value = dockEdge.value
+  const current = geometry.value
+  floatingPos.value = clampFloating(
+    current.x + current.width / 2 - CIRCLE_DIAMETER / 2,
+    current.y + current.height / 2 - CIRCLE_DIAMETER / 2
+  )
+  dockEdge.value = null
 }
 </script>
 
@@ -146,11 +178,11 @@ function onPointerUp(event: PointerEvent) {
   <div
     ref="pillRef"
     class="tv-doodle-panel fixed z-20 select-none overflow-hidden rounded-full"
-    :class="[dragging ? 'cursor-grabbing' : 'cursor-grab', props.isFull ? 'tv-bar-glow' : '']"
+    :class="[isCoarsePointer ? 'cursor-pointer' : (dragging ? 'cursor-grabbing' : 'cursor-grab'), props.isFull ? 'tv-bar-glow' : '']"
     :style="style"
     data-testid="momentum-bar"
     role="slider"
-    aria-label="Momentum bar — drag to move, drop near a screen edge to dock as a bar"
+    :aria-label="isCoarsePointer ? 'Momentum bar — tap to switch between bar and circle' : 'Momentum bar — drag to move, drop near a screen edge to dock as a bar'"
     :aria-valuenow="Math.round(props.progress)"
     aria-valuemin="0"
     aria-valuemax="100"

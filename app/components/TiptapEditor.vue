@@ -16,6 +16,7 @@ const emit = defineEmits<{
   'bar-request': []
   'ghost-request': []
   'theme-request': []
+  'about-request': []
 }>()
 
 interface Command {
@@ -36,6 +37,7 @@ const commands = computed<Command[]>(() => [
   { name: 'bar', hint: 'Adjust how big the goal bar is', run: () => emit('bar-request') },
   { name: 'ghost', hint: 'Add your own starting prompts', run: () => emit('ghost-request') },
   { name: 'theme', hint: 'Pick a color scheme', run: () => emit('theme-request') },
+  { name: 'about', hint: 'Read the mission, find the source', run: () => emit('about-request') },
   { name: 'help', hint: 'Show every command', run: () => emit('help-request') },
   { name: 'bold', hint: 'Toggle bold text', run: () => editor.value?.chain().focus().toggleBold().run() },
   { name: 'italic', hint: 'Toggle italic text', run: () => editor.value?.chain().focus().toggleItalic().run() },

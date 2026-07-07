@@ -34,6 +34,7 @@ const helpCommands = [
   ['/bar', 'adjust how big the goal bar is'],
   ['/ghost', 'add your own starting prompts'],
   ['/theme', 'pick a color scheme'],
+  ['/about', 'read the mission, find the source'],
   ['/bold', 'toggle bold text'],
   ['/italic', 'toggle italic text'],
   ['/list', 'start a bullet list'],
@@ -112,11 +113,11 @@ function removeGhost(index: number) {
 </script>
 
 <template>
-  <section class="min-h-screen px-6 py-10 sm:px-10 lg:px-16">
+  <section class="min-h-screen px-8 py-20 sm:px-12 sm:py-24 lg:px-20 lg:py-28">
     <!-- Momentum bar: a draggable, clickable blob that fills as you type and drains slowly with time. Top it off. -->
     <MomentumBar :progress="progress" :is-full="isFull" />
 
-    <div class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-3xl flex-col justify-center">
+    <div class="mx-auto flex min-h-[calc(100vh-10rem)] max-w-3xl flex-col justify-center">
       <TiptapEditor
         ref="editorRef"
         v-model="html"
@@ -129,6 +130,7 @@ function removeGhost(index: number) {
         @bar-request="modal = 'bar'"
         @ghost-request="modal = 'ghost'"
         @theme-request="modal = 'theme'"
+        @about-request="navigateTo('/about')"
       />
     </div>
 
