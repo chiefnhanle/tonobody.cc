@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyLineDelta, decay, barPercent, GAIN_PER_LINE, DECAY_PER_SECOND } from '../../app/utils/bar'
+import { applyLineDelta, applyCharDelta, decay, barPercent, GAIN_PER_LINE, GAIN_PER_CHAR, DECAY_PER_SECOND } from '../../app/utils/bar'
 
 describe('applyLineDelta', () => {
   it('rewards newly added lines', () => {
@@ -9,6 +9,17 @@ describe('applyLineDelta', () => {
   it('never subtracts when lines are deleted', () => {
     expect(applyLineDelta(5, -2)).toBe(5)
     expect(applyLineDelta(5, 0)).toBe(5)
+  })
+})
+
+describe('applyCharDelta', () => {
+  it('rewards newly typed characters', () => {
+    expect(applyCharDelta(0, 10)).toBeCloseTo(10 * GAIN_PER_CHAR)
+  })
+
+  it('never subtracts when characters are deleted', () => {
+    expect(applyCharDelta(5, -2)).toBe(5)
+    expect(applyCharDelta(5, 0)).toBe(5)
   })
 })
 

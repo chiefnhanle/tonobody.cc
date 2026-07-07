@@ -2,7 +2,7 @@
 import { DEFAULT_GHOST_LINES } from '~/utils/ghosts'
 import {
   DEFAULT_TARGET, MIN_TARGET, MAX_TARGET,
-  applyLineDelta, decay, barPercent
+  applyLineDelta, applyCharDelta, decay, barPercent
 } from '~/utils/bar'
 
 type ModalName = 'help' | 'bar' | 'ghost' | null
@@ -17,6 +17,7 @@ const editorRef = ref<EditorHandle | null>(null)
 const fill = ref(0)
 const target = ref(DEFAULT_TARGET)
 const prevLines = ref(0)
+const prevChars = ref(0)
 const progress = computed(() => barPercent(fill.value, target.value))
 const isFull = computed(() => progress.value >= 100)
 
@@ -65,6 +66,11 @@ function onLineCount(count: number) {
   prevLines.value = count
 }
 
+function onCharCount(count: number) {
+  fill.value = applyCharDelta(fill.value, count - prevChars.value)
+  prevChars.value = count
+}
+
 function onGlobalKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     modal.value = null
@@ -87,6 +93,7 @@ function resetPage() {
   html.value = '<p></p>'
   fill.value = 0
   prevLines.value = 0
+  prevChars.value = 0
   ghostIndex.value = (ghostIndex.value + 1) % Math.max(ghostLines.value.length, 1)
   modal.value = null
   flashStatus('let it go — the page is empty again')
@@ -108,14 +115,8 @@ function removeGhost(index: number) {
 
 <template>
   <section class="min-h-screen px-6 py-10 sm:px-10 lg:px-16">
-    <!-- Momentum bar: fills as you type, drains slowly with time. Top it off. -->
-    <div class="fixed inset-x-0 top-0 z-20 h-[3px] bg-white/5">
-      <div
-        class="h-full bg-teal-300/80"
-        :class="isFull ? 'tv-bar-full' : ''"
-        :style="{ width: `${progress}%` }"
-      />
-    </div>
+    <!-- Momentum bar: a draggable pill that fills as you type and drains slowly with time. Top it off. -->
+    <MomentumBar :progress="progress" :is-full="isFull" />
 
     <div class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-3xl flex-col justify-center">
       <TiptapEditor
@@ -125,6 +126,7 @@ function removeGhost(index: number) {
         :ghost-index="ghostIndex"
         class="w-full"
         @line-count="onLineCount"
+        @char-count="onCharCount"
         @submit-request="resetPage"
         @help-request="modal = 'help'"
         @bar-request="modal = 'bar'"

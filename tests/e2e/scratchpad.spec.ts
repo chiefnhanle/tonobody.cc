@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 async function barWidth(page: import('@playwright/test').Page) {
   return page.evaluate(() => {
-    const el = document.querySelector('.fixed.top-0 > div') as HTMLElement | null
+    const el = document.querySelector('[data-testid="momentum-bar-fill"]') as HTMLElement | null
     return el ? Number.parseFloat(el.style.width) || 0 : -1
   })
 }

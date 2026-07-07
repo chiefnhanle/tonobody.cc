@@ -11,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   'line-count': [count: number]
+  'char-count': [count: number]
   'submit-request': []
   'help-request': []
   'bar-request': []
@@ -84,28 +85,29 @@ const editor = useEditor({
   },
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
-    emitLineCount()
+    emitCounts()
     updateCommandState()
   },
   onSelectionUpdate: updateCommandState
 })
 
-function emitLineCount() {
+function emitCounts() {
   const instance = editor.value
   if (!instance) return
   isEmpty.value = instance.isEmpty
-  let count = 0
+  let lineCount = 0
   instance.state.doc.descendants((node) => {
-    if (node.isTextblock && node.textContent.trim().length > 0) count++
+    if (node.isTextblock && node.textContent.trim().length > 0) lineCount++
     return true
   })
-  emit('line-count', count)
+  emit('line-count', lineCount)
+  emit('char-count', instance.getText().length)
 }
 
 watch(() => props.modelValue, (value) => {
   if (editor.value && value !== editor.value.getHTML()) {
     editor.value.commands.setContent(value || '<p></p>', false)
-    emitLineCount()
+    emitCounts()
   }
 })
 

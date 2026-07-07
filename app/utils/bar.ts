@@ -13,13 +13,24 @@ export const MAX_TARGET = 120
 // How much a single new line adds to the fill.
 export const GAIN_PER_LINE = 1
 
+// How much a single newly typed character adds to the fill. Small on its own,
+// but it means the bar responds to steady typing, not just line breaks.
+export const GAIN_PER_CHAR = 0.03
+
 // How much fill drains per second. Deliberately gentle — "slowly, slowly".
-export const DECAY_PER_SECOND = 0.4
+// 10x gentler than the original pace, so a short pause doesn't cost much ground.
+export const DECAY_PER_SECOND = 0.04
 
 /** Reward newly added lines. Deleting lines (negative delta) never subtracts. */
 export function applyLineDelta(fill: number, delta: number, gainPerLine = GAIN_PER_LINE): number {
   if (delta <= 0) return fill
   return fill + delta * gainPerLine
+}
+
+/** Reward newly typed characters. Deleting characters (negative delta) never subtracts. */
+export function applyCharDelta(fill: number, delta: number, gainPerChar = GAIN_PER_CHAR): number {
+  if (delta <= 0) return fill
+  return fill + delta * gainPerChar
 }
 
 /** Let time pull the fill back toward zero. `fill` never drops below 0. */
