@@ -1,5 +1,7 @@
 # tonobody.cc
 
+*A little pet project I did to learn vue*
+
 tonobody.cc is a deliberately forgetful scratchpad. You type whatever is on your mind, and when you're done you `/scrap` it — which rips the whole page and resets it to blank. Nothing is stored, anywhere. It exists to help with anxiety: a place to empty your head that you never have to tend, revisit, or clean up.
 
 ## The idea
