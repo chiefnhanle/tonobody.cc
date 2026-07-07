@@ -1,26 +1,52 @@
-﻿# Thought Vault
+# Thought Vault
 
-Thought Vault is a local-first Nuxt application for capturing raw research thoughts into a Codex-ready Markdown inbox. It is not a general notes app and not an AI chatbot. The app captures; Codex co-thinks later; you approve structure before canonical knowledge files are created.
+Thought Vault is a deliberately forgetful scratchpad. You type whatever is on your mind, and when you're done you `/send` — which rips the whole page and resets it to blank. Nothing is stored, anywhere. It exists to help with anxiety: a place to empty your head that you never have to tend, revisit, or clean up.
+
+## The idea
+
+- **Empty slate.** Open it and there's just a page and a few faint prompts.
+- **`/send` is a purge button.** It doesn't save or transmit anything. It clears the page so you can start fresh.
+- **A goal bar** at the top of the screen fills as you add lines and drains slowly over time. The aim is to keep writing fast enough to top it off — a gentle nudge to get the thoughts out.
+- **Ghost lines** are the faint witty prompts on the empty page. You can add your own.
 
 ## What it deliberately does not do
 
-Version 1 does not include automatic AI classification, semantic search, embeddings, graph databases, cloud storage, user accounts, authentication, analytics, telemetry, payments, advertisements, external APIs, or OpenAI API calls.
+There is no storage, no persistence, no memory. No files, no database, no browser storage, no accounts, no network calls, no telemetry. Close the tab and it's gone.
+
+## Slash is the interface
+
+Everything lives behind `/` commands typed into the page — there are no visible buttons.
+
+| Command    | What it does                              |
+| ---------- | ----------------------------------------- |
+| `/send`    | release everything and reset the page     |
+| `/bar`     | adjust how big the goal bar is (a slider) |
+| `/ghost`   | add your own starting prompts             |
+| `/bold`    | toggle bold text                          |
+| `/italic`  | toggle italic text                        |
+| `/list`    | start a bullet list                       |
+| `/quote`   | set something aside as a quote            |
+| `/help`    | show every command                        |
+
+`Cmd/Ctrl+Enter` is a shortcut for `/send`.
+
+## The goal bar
+
+The bar rewards momentum. Each new line pushes it up; time gently pulls it back down. You never lose progress by editing or deleting — only by pausing. Use `/bar` to set how big the goal is: a bigger goal takes more sustained writing to fill.
+
+## Ghost lines
+
+The faint prompts on the empty page (e.g. "Message yourself here…"). The defaults live in `app/utils/ghosts.ts` — add strings there for permanent prompts, or use `/ghost` to add prompts for the current session.
 
 ## Prerequisites
 
 - Node.js 22 or newer
 - pnpm 10 or newer
-- A local folder to use as your knowledge vault
 
-## Install
+## Install and run
 
 ```bash
 pnpm install
-```
-
-## Local development
-
-```bash
 pnpm dev
 ```
 
@@ -37,97 +63,3 @@ pnpm lint
 pnpm test
 pnpm test:e2e
 ```
-
-## Production build and local deployment
-
-```bash
-pnpm build
-pnpm preview
-```
-
-This runs a local Node/Nitro server. Version 1 is designed for one computer and ordinary local files.
-
-## Configuration
-
-Optional environment variables:
-
-```bash
-THOUGHT_VAULT_ROOT=
-THOUGHT_VAULT_MAX_ATTACHMENT_BYTES=104857600
-```
-
-If `THOUGHT_VAULT_ROOT` is not set, choose a vault folder in Settings. The selected path is stored in a small local app settings file. The vault itself stores rebuildable app state in `.thought-vault/app-state.json`.
-
-## Choose a vault folder
-
-Open Settings and enter a folder path such as:
-
-```text
-C:\Users\USERNAME\Documents\ThoughtVault
-```
-
-Then click `Create New Vault` or `Initialise / Repair Vault Structure`.
-
-## OneDrive folders
-
-You may choose a OneDrive-synchronised folder. Thought Vault does not call OneDrive APIs. It writes normal local files and lets OneDrive sync externally.
-
-## Where captures are stored
-
-Raw captures are immutable Markdown files under:
-
-```text
-00-inbox/ready/YYYY-MM-DD/YYYY-MM-DD_HHmmss__short-slug__cap_xxxxxxxxxx.md
-```
-
-Attachments are copied under:
-
-```text
-00-inbox/attachments/cap_xxxxxxxxxx/
-```
-
-Markdown front matter stores capture metadata and relative attachment paths only.
-
-## Open the vault in Codex
-
-Open the vault folder, not necessarily this app repository, as a Codex project. Codex will read `AGENTS.md`, which describes the co-thinking protocol and raw capture immutability rules.
-
-## Rebuild the local index
-
-Open Settings and click `Initialise / Repair Vault Structure`, or call:
-
-```bash
-curl http://localhost:3000/api/vault/status
-```
-
-The index is rebuildable from Markdown files in `00-inbox/ready/`.
-
-## Security and privacy notes
-
-- Capture content is written to local Markdown files only after you send it.
-- Draft text is stored in browser IndexedDB before sending.
-- Attachment binary data is not restored after browser restart.
-- The browser never receives arbitrary filesystem access.
-- Server routes resolve captures by ID and relative vault paths.
-- Raw captures cannot be edited or deleted through the app in version 1.
-
-## Version 1 limitations
-
-- The folder chooser is a path field, not a native directory picker.
-- Attachment uploads are handled by the local Nitro server request pipeline.
-- Reveal-in-file-browser depends on the local operating system.
-- Search is simple indexed text search over title, preview, ID, and path.
-- The read-only viewer displays Markdown text rather than a full rendered Markdown preview.
-
-## Version 2 roadmap
-
-- direct Codex-assisted processing panel;
-- review and approval UI for Codex proposals;
-- structured note creation workflow;
-- knowledge graph visualisation;
-- semantic search;
-- PDF extraction;
-- source/page evidence mapping;
-- optional local Git integration;
-- optional cloud sync;
-- optional multi-device capture.

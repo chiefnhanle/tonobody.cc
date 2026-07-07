@@ -1,282 +1,44 @@
-﻿<script setup lang="ts">
-import Link from '@tiptap/extension-link'
-import Placeholder from '@tiptap/extension-placeholder'
-import Underline from '@tiptap/extension-underline'
+<script setup lang="ts">
 import StarterKit from '@tiptap/starter-kit'
-import { EditorContent, Node, mergeAttributes, useEditor } from '@tiptap/vue-3'
+import { EditorContent, useEditor } from '@tiptap/vue-3'
+import { ghostWindow } from '~/utils/ghosts'
 
-export interface EditorAttachmentBlock {
-  id: string
-  name: string
-  type: string
-  size: string
-  previewUrl: string
-}
-
-const props = defineProps<{ modelValue: string }>()
+const props = defineProps<{
+  modelValue: string
+  ghostLines: string[]
+  ghostIndex: number
+}>()
 const emit = defineEmits<{
   'update:modelValue': [value: string]
-  'attach-request': []
+  'line-count': [count: number]
   'submit-request': []
   'help-request': []
-  'inbox-request': []
-  'settings-request': []
-  'vault-request': []
-  'graph-request': []
-  'examples-request': []
-  'math-request': [mode: 'inline' | 'block']
+  'bar-request': []
+  'ghost-request': []
 }>()
 
-interface CaptureCommand {
+interface Command {
   name: string
   hint: string
   run: () => void
 }
-
-type DomSpec = string | [string, Record<string, string>, ...DomSpec[]]
-
-const latexSymbols: Record<string, string> = {
-  alpha: 'α',
-  beta: 'β',
-  gamma: 'γ',
-  delta: 'δ',
-  epsilon: 'ε',
-  theta: 'θ',
-  lambda: 'λ',
-  mu: 'μ',
-  pi: 'π',
-  rho: 'ρ',
-  sigma: 'σ',
-  phi: 'φ',
-  omega: 'ω',
-  Gamma: 'Γ',
-  Delta: 'Δ',
-  Theta: 'Θ',
-  Lambda: 'Λ',
-  Pi: 'Π',
-  Sigma: 'Σ',
-  Phi: 'Φ',
-  Omega: 'Ω',
-  times: '×',
-  cdot: '⋅',
-  pm: '±',
-  leq: '≤',
-  geq: '≥',
-  neq: '≠',
-  approx: '≈',
-  infty: '∞',
-  partial: '∂',
-  nabla: '∇',
-  int: '∫',
-  sum: '∑'
-}
-
-function mathText(value: string): DomSpec {
-  const className = /^[+\-=<>×⋅±≤≥≠≈,()[\]|]$/.test(value)
-    ? 'tv-math-operator'
-    : /^\d+(?:\.\d+)?$/.test(value)
-      ? 'tv-math-number'
-      : 'tv-math-identifier'
-  return ['span', { class: className }, value]
-}
-
-function readGroup(input: string, start: number) {
-  if (input[start] !== '{') return { value: input[start] || '', end: start + 1 }
-  let depth = 0
-  for (let index = start; index < input.length; index++) {
-    if (input[index] === '{') depth++
-    if (input[index] === '}') depth--
-    if (depth === 0) return { value: input.slice(start + 1, index), end: index + 1 }
-  }
-  return { value: input.slice(start + 1), end: input.length }
-}
-
-function readScript(input: string, start: number) {
-  if (input[start] === '{') return readGroup(input, start)
-  if (input[start] === '\\') {
-    const command = input.slice(start + 1).match(/^[A-Za-z]+/)?.[0] || ''
-    return { value: `\\${command}`, end: start + command.length + 1 }
-  }
-  return { value: input[start] || '', end: start + 1 }
-}
-
-function latexToRenderSpec(latex: string): DomSpec {
-  const nodes: DomSpec[] = []
-  let index = 0
-
-  while (index < latex.length) {
-    const char = latex[index]
-    if (!char) break
-    if (/\s/.test(char)) {
-      index++
-      continue
-    }
-
-    let node: DomSpec
-    if (char === '\\') {
-      const command = latex.slice(index + 1).match(/^[A-Za-z]+/)?.[0] || ''
-      index += command.length + 1
-      if (command === 'frac') {
-        const numerator = readGroup(latex, index)
-        const denominator = readGroup(latex, numerator.end)
-        node = ['span', { class: 'tv-math-frac' }, ['span', { class: 'tv-math-frac-num' }, latexToRenderSpec(numerator.value)], ['span', { class: 'tv-math-frac-den' }, latexToRenderSpec(denominator.value)]]
-        index = denominator.end
-      } else if (command === 'sqrt') {
-        const radicand = readGroup(latex, index)
-        node = ['span', { class: 'tv-math-sqrt' }, ['span', { class: 'tv-math-sqrt-symbol' }, '√'], ['span', { class: 'tv-math-sqrt-body' }, latexToRenderSpec(radicand.value)]]
-        index = radicand.end
-      } else {
-        node = mathText(latexSymbols[command] || command)
-      }
-    } else if (char === '{') {
-      const group = readGroup(latex, index)
-      node = latexToRenderSpec(group.value)
-      index = group.end
-    } else {
-      node = mathText(char)
-      index++
-    }
-
-    while (latex[index] === '^' || latex[index] === '_') {
-      const operator = latex[index]
-      const script = readScript(latex, index + 1)
-      node = operator === '^'
-        ? ['span', { class: 'tv-math-script' }, node, ['sup', { class: 'tv-math-sup' }, latexToRenderSpec(script.value)]]
-        : ['span', { class: 'tv-math-script' }, node, ['sub', { class: 'tv-math-sub' }, latexToRenderSpec(script.value)]]
-      index = script.end
-    }
-
-    nodes.push(node)
-  }
-
-  return ['span', { class: 'tv-math-row' }, ...nodes]
-}
-
-const AttachmentBlock = Node.create({
-  name: 'attachmentBlock',
-  group: 'block',
-  atom: true,
-  selectable: true,
-  draggable: true,
-
-  addAttributes() {
-    return {
-      id: { default: '' },
-      name: { default: 'attachment' },
-      type: { default: 'application/octet-stream' },
-      size: { default: '' },
-      previewUrl: { default: '' }
-    }
-  },
-
-  parseHTML() {
-    return [{ tag: 'figure[data-thought-vault-attachment]' }]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    const isImage = String(HTMLAttributes.type || '').startsWith('image/')
-    return [
-      'figure',
-      mergeAttributes(HTMLAttributes, {
-        'data-thought-vault-attachment': 'true',
-        'data-attachment-id': HTMLAttributes.id,
-        class: 'tv-attachment-card',
-        contenteditable: 'false'
-      }),
-      isImage
-        ? ['img', { src: HTMLAttributes.previewUrl, alt: HTMLAttributes.name, class: 'tv-attachment-image' }]
-        : ['div', { class: 'tv-attachment-file' }, ['span', { class: 'tv-attachment-dot' }, ''], ['span', { class: 'tv-attachment-name' }, HTMLAttributes.name]],
-      ['figcaption', { class: 'tv-attachment-caption' }, `${HTMLAttributes.name} - ${HTMLAttributes.size || HTMLAttributes.type}`]
-    ]
-  }
-})
-
-const MathInline = Node.create({
-  name: 'mathInline',
-  group: 'inline',
-  inline: true,
-  atom: true,
-  selectable: true,
-
-  addAttributes() {
-    return { latex: { default: '' } }
-  },
-
-  parseHTML() {
-    return [{ tag: 'span[data-thought-vault-math-inline]' }]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    const latex = String(HTMLAttributes.latex || '')
-    return [
-      'span',
-      mergeAttributes(HTMLAttributes, {
-        'data-thought-vault-math-inline': 'true',
-        'data-latex': latex,
-        class: 'tv-math-inline',
-        contenteditable: 'false'
-      }),
-      ['span', { class: 'tv-math-rendered' }, latexToRenderSpec(latex)]
-    ]
-  }
-})
-
-const MathBlock = Node.create({
-  name: 'mathBlock',
-  group: 'block',
-  atom: true,
-  selectable: true,
-
-  addAttributes() {
-    return { latex: { default: '' } }
-  },
-
-  parseHTML() {
-    return [{ tag: 'figure[data-thought-vault-math-block]' }]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    const latex = String(HTMLAttributes.latex || '')
-    return [
-      'figure',
-      mergeAttributes(HTMLAttributes, {
-        'data-thought-vault-math-block': 'true',
-        'data-latex': latex,
-        class: 'tv-math-block',
-        contenteditable: 'false'
-      }),
-      ['div', { class: 'tv-math-rendered' }, latexToRenderSpec(latex)],
-      ['code', { class: 'tv-math-source' }, latex]
-    ]
-  }
-})
 
 const commandQuery = ref('')
 const commandRange = ref<{ from: number, to: number } | null>(null)
 const commandPosition = ref({ left: 0, top: 56 })
 const highlightedCommand = ref(0)
 const editorShell = ref<HTMLElement | null>(null)
-const commands = computed<CaptureCommand[]>(() => [
-  { name: 'send', hint: 'Save this capture to the vault', run: () => emit('submit-request') },
+const isEmpty = ref(true)
+
+const commands = computed<Command[]>(() => [
+  { name: 'send', hint: 'Release everything and reset the page', run: () => emit('submit-request') },
+  { name: 'bar', hint: 'Adjust how big the goal bar is', run: () => emit('bar-request') },
+  { name: 'ghost', hint: 'Add your own starting prompts', run: () => emit('ghost-request') },
   { name: 'help', hint: 'Show every command', run: () => emit('help-request') },
-  { name: 'inbox', hint: 'Open recent captures', run: () => emit('inbox-request') },
-  { name: 'vault', hint: 'Browse the vault', run: () => emit('vault-request') },
-  { name: 'graph', hint: 'Open the knowledge graph', run: () => emit('graph-request') },
-  { name: 'examples', hint: 'Seed example inbox maps', run: () => emit('examples-request') },
-  { name: 'settings', hint: 'Open vault settings', run: () => emit('settings-request') },
-  { name: 'title', hint: 'Turn this line into the capture title', run: () => editor.value?.chain().focus().toggleHeading({ level: 1 }).run() },
-  { name: 'section', hint: 'Start a second-level heading', run: () => editor.value?.chain().focus().toggleHeading({ level: 2 }).run() },
-  { name: 'bold', hint: 'Toggle bold for the next words', run: () => editor.value?.chain().focus().toggleBold().run() },
+  { name: 'bold', hint: 'Toggle bold text', run: () => editor.value?.chain().focus().toggleBold().run() },
   { name: 'italic', hint: 'Toggle italic text', run: () => editor.value?.chain().focus().toggleItalic().run() },
   { name: 'list', hint: 'Start a bullet list', run: () => editor.value?.chain().focus().toggleBulletList().run() },
-  { name: 'numbered', hint: 'Start a numbered list', run: () => editor.value?.chain().focus().toggleOrderedList().run() },
-  { name: 'quote', hint: 'Capture a quote or aside', run: () => editor.value?.chain().focus().toggleBlockquote().run() },
-  { name: 'code', hint: 'Start a code block', run: () => editor.value?.chain().focus().toggleCodeBlock().run() },
-  { name: 'math', hint: 'Insert inline LaTeX math', run: () => emit('math-request', 'inline') },
-  { name: 'equation', hint: 'Insert a display equation', run: () => emit('math-request', 'block') },
-  { name: 'link', hint: 'Add a link to selected text', run: setLink },
-  { name: 'rule', hint: 'Insert a horizontal rule', run: () => editor.value?.chain().focus().setHorizontalRule().run() },
-  { name: 'attach', hint: 'Attach files to this capture', run: () => emit('attach-request') }
+  { name: 'quote', hint: 'Set something aside as a quote', run: () => editor.value?.chain().focus().toggleBlockquote().run() }
 ])
 const filteredCommands = computed(() => {
   const query = commandQuery.value.toLowerCase()
@@ -288,17 +50,11 @@ const commandStyle = computed(() => ({
   top: `${commandPosition.value.top}px`
 }))
 
+const visibleGhosts = computed(() => ghostWindow(props.ghostLines, props.ghostIndex, 3))
+
 const editor = useEditor({
   content: props.modelValue || '<p></p>',
-  extensions: [
-    StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
-    AttachmentBlock,
-    MathInline,
-    MathBlock,
-    Underline,
-    Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
-    Placeholder.configure({ placeholder: 'Type. Use /help when you need the room to answer.' })
-  ],
+  extensions: [StarterKit.configure({ heading: { levels: [1, 2, 3] } })],
   editorProps: {
     attributes: { class: 'prose prose-invert max-w-none focus:outline-none' },
     handleKeyDown: (_view, event) => {
@@ -328,13 +84,29 @@ const editor = useEditor({
   },
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
+    emitLineCount()
     updateCommandState()
   },
   onSelectionUpdate: updateCommandState
 })
 
+function emitLineCount() {
+  const instance = editor.value
+  if (!instance) return
+  isEmpty.value = instance.isEmpty
+  let count = 0
+  instance.state.doc.descendants((node) => {
+    if (node.isTextblock && node.textContent.trim().length > 0) count++
+    return true
+  })
+  emit('line-count', count)
+}
+
 watch(() => props.modelValue, (value) => {
-  if (editor.value && value !== editor.value.getHTML()) editor.value.commands.setContent(value || '<p></p>', false)
+  if (editor.value && value !== editor.value.getHTML()) {
+    editor.value.commands.setContent(value || '<p></p>', false)
+    emitLineCount()
+  }
 })
 
 function closeCommands() {
@@ -360,8 +132,7 @@ function updateCommandPosition() {
 function updateCommandState() {
   const instance = editor.value
   if (!instance) return
-  const { state } = instance
-  const { selection } = state
+  const { selection } = instance.state
   if (!selection.empty) {
     closeCommands()
     return
@@ -383,7 +154,7 @@ function updateCommandState() {
   updateCommandPosition()
 }
 
-function runCommand(command: CaptureCommand | undefined) {
+function runCommand(command: Command | undefined) {
   const instance = editor.value
   const range = commandRange.value
   if (!instance || !command || !range) return
@@ -392,60 +163,32 @@ function runCommand(command: CaptureCommand | undefined) {
   command.run()
 }
 
-function setLink() {
-  if (!editor.value) return
-  const previousUrl = editor.value.getAttributes('link').href as string | undefined
-  const url = window.prompt('URL', previousUrl || '')
-  if (url === null) return
-  if (url === '') editor.value.chain().focus().unsetLink().run()
-  else editor.value.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+function focus() {
+  editor.value?.chain().focus().run()
 }
 
-function insertAttachmentBlock(attachment: EditorAttachmentBlock) {
-  editor.value?.chain().focus().insertContent([
-    {
-      type: 'attachmentBlock',
-      attrs: attachment
-    },
-    {
-      type: 'paragraph'
-    }
-  ]).run()
-}
-
-function insertMath(mode: 'inline' | 'block', latex: string) {
-  const trimmed = latex.trim()
-  if (!trimmed) return
-  if (mode === 'inline') {
-    editor.value?.chain().focus().insertContent([
-      {
-        type: 'mathInline',
-        attrs: { latex: trimmed }
-      },
-      {
-        type: 'text',
-        text: ' '
-      }
-    ]).run()
-    return
-  }
-  editor.value?.chain().focus().insertContent([
-    {
-      type: 'mathBlock',
-      attrs: { latex: trimmed }
-    },
-    {
-      type: 'paragraph'
-    }
-  ]).run()
-}
-
-defineExpose({ insertAttachmentBlock, insertMath })
+defineExpose({ focus })
 </script>
 
 <template>
   <div ref="editorShell" class="relative">
+    <div
+      v-if="isEmpty && visibleGhosts.length"
+      class="pointer-events-none absolute inset-x-0 top-0 select-none pt-4 text-xl leading-9"
+      aria-hidden="true"
+    >
+      <p
+        v-for="(line, index) in visibleGhosts"
+        :key="`${index}-${line}`"
+        class="tv-ghost-line"
+        :style="{ opacity: index === 0 ? 0.4 : index === 1 ? 0.2 : 0.1 }"
+      >
+        {{ line }}
+      </p>
+    </div>
+
     <EditorContent :editor="editor" class="capture-editor px-0 py-0" />
+
     <div
       v-if="showCommands"
       class="matte-glass absolute z-10 w-[min(30rem,calc(100vw-3rem))] overflow-hidden rounded-xl shadow-2xl shadow-black/50"

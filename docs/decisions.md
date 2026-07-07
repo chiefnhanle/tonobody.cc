@@ -1,7 +1,6 @@
-﻿# Implementation decisions
+# Implementation decisions
 
-- The app uses a path field for vault selection so that the Nitro server, not the browser, owns filesystem writes.
-- Raw captures are never edited or deleted by the UI in version 1.
-- The index in `.thought-vault/app-state.json` is a cache. Markdown files remain the source of truth.
-- Attachment content type is derived from the sanitized extension on the server instead of trusting the browser-provided MIME type.
-- If attachment copying fails, the capture Markdown is not written.
+- The app is intentionally forgetful. It has no persistence layer of any kind — no server, no filesystem, no database, no browser storage. `/send` clears the page; there is nothing to save.
+- "Slash is the interface." Actions are `/` commands typed into the editor rather than visible buttons. Configuration (goal-bar size, ghost prompts) appears as popups triggered by slash commands.
+- The goal bar rewards momentum, not raw volume: adding lines increases `fill`, time decays it, and deleting lines never subtracts. This keeps it forgiving — you only lose ground by pausing. The fill math lives in `app/utils/bar.ts` and is unit tested in isolation.
+- Ghost lines (the faint prompts on the empty page) default from `app/utils/ghosts.ts`; user-added prompts are session-only, consistent with the no-storage rule.

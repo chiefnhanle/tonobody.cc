@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -19,11 +19,10 @@ body { @apply bg-neutral-950 text-stone-100 antialiased; }
     0 24px 80px rgb(0 0 0 / 0.42);
   backdrop-filter: blur(22px) saturate(0.78);
 }
+
+/* Editor surface */
 .tiptap { @apply min-h-[420px] outline-none; }
 .capture-editor .tiptap { @apply min-h-[70vh] text-xl leading-9 text-stone-200 caret-teal-300; }
-.capture-editor .tiptap p.is-editor-empty:first-child::before {
-  @apply pointer-events-none float-left h-0 text-stone-700 content-[attr(data-placeholder)];
-}
 .tiptap p { @apply my-4 leading-8; }
 .tiptap h1 { @apply mb-6 mt-8 text-4xl font-semibold text-white; }
 .tiptap h2 { @apply mb-4 mt-7 text-2xl font-semibold text-stone-100; }
@@ -33,81 +32,26 @@ body { @apply bg-neutral-950 text-stone-100 antialiased; }
 .tiptap blockquote { @apply my-5 border-l border-stone-700 pl-5 text-stone-400; }
 .tiptap code { @apply rounded bg-white/10 px-1 py-0.5 font-mono text-sm text-stone-100; }
 .tiptap pre { @apply my-5 overflow-x-auto rounded-xl bg-black/30 p-4 text-stone-100; }
-.tiptap a { @apply text-teal-300 underline decoration-teal-300/40 underline-offset-4; }
 .tiptap hr { @apply my-10 border-stone-800; }
-.tv-attachment-card {
-  @apply matte-glass my-6 overflow-hidden rounded-2xl;
+
+/* Faint witty prompts over the empty page */
+.tv-ghost-line { @apply my-4 leading-8 text-stone-500; }
+
+/* Momentum bar, topped-off state */
+.tv-bar-full {
+  box-shadow: 0 0 12px rgb(94 234 212 / 0.65);
+  transition: box-shadow 400ms ease;
 }
-.tv-attachment-card.ProseMirror-selectednode {
-  @apply outline outline-2 outline-teal-300/70;
+
+/* Goal-size slider (no native chrome) */
+.tv-slider {
+  @apply h-1 w-full cursor-pointer appearance-none rounded-full bg-white/10;
 }
-.tv-attachment-image {
-  @apply max-h-[28rem] w-full object-contain;
+.tv-slider::-webkit-slider-thumb {
+  @apply h-4 w-4 appearance-none rounded-full bg-teal-300;
+  box-shadow: 0 0 0 4px rgb(94 234 212 / 0.18);
 }
-.tv-attachment-file {
-  @apply flex items-center gap-3 px-4 pt-4 text-sm text-stone-200;
-}
-.tv-attachment-dot {
-  @apply h-2.5 w-2.5 shrink-0 rounded-full bg-teal-300/80;
-}
-.tv-attachment-name {
-  @apply min-w-0 truncate;
-}
-.tv-attachment-caption {
-  @apply border-t border-white/5 px-4 py-3 text-xs text-stone-500;
-}
-.tv-math-inline {
-  @apply matte-glass mx-1 inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.92em] text-teal-100;
-}
-.tv-math-inline.ProseMirror-selectednode {
-  @apply outline outline-2 outline-teal-300/70;
-}
-.tv-math-block {
-  @apply matte-glass my-6 rounded-2xl px-5 py-5 text-teal-100;
-}
-.tv-math-block.ProseMirror-selectednode {
-  @apply outline outline-2 outline-teal-300/70;
-}
-.tv-math-rendered {
-  @apply mx-auto inline-flex items-center justify-center gap-1 text-xl;
-}
-.tv-math-source {
-  @apply mt-3 block whitespace-pre-wrap bg-transparent p-0 text-center font-mono text-xs leading-5 text-stone-600;
-}
-.tv-math-row {
-  @apply inline-flex items-center gap-1;
-}
-.tv-math-identifier {
-  @apply italic;
-}
-.tv-math-number,
-.tv-math-operator {
-  @apply not-italic;
-}
-.tv-math-frac {
-  @apply mx-1 inline-grid grid-rows-[auto_auto] items-center justify-items-center align-middle text-center leading-none;
-}
-.tv-math-frac-num {
-  @apply block border-b border-teal-100/70 px-2 pb-1;
-}
-.tv-math-frac-den {
-  @apply block px-2 pt-1;
-}
-.tv-math-script {
-  @apply inline-flex items-start gap-0.5;
-}
-.tv-math-sup {
-  @apply relative -top-1 text-[0.68em] leading-none;
-}
-.tv-math-sub {
-  @apply relative top-2 text-[0.68em] leading-none;
-}
-.tv-math-sqrt {
-  @apply inline-flex items-start gap-1;
-}
-.tv-math-sqrt-symbol {
-  @apply text-[1.35em] leading-none;
-}
-.tv-math-sqrt-body {
-  @apply border-t border-teal-100/70 px-1 pt-1;
+.tv-slider::-moz-range-thumb {
+  @apply h-4 w-4 rounded-full border-0 bg-teal-300;
+  box-shadow: 0 0 0 4px rgb(94 234 212 / 0.18);
 }
