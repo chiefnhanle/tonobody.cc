@@ -7,10 +7,14 @@
   srcDir: 'app/',
   typescript: { strict: true, typeCheck: true },
   nitro: {
-    // /about is only reachable via a client-side slash command, not a real
-    // <a>/<NuxtLink>, so the static crawler (which starts at "/" and only
-    // follows discoverable links) would otherwise skip it entirely.
-    prerender: { routes: ['/about'] },
+    // Listed explicitly (rather than relying on crawling) so both `nuxt
+    // generate` and plain `nuxt build` always prerender them the same way —
+    // Cloudflare has, more than once, silently run the build with `nuxt build`
+    // instead of the configured `generate`, and a plain `build` only
+    // prerenders routes listed here, not ones reached only by crawling from
+    // `/`. `/about` in particular is only reachable via a client-side slash
+    // command, not a real `<a>`/`<NuxtLink>`, so the crawler would skip it too.
+    prerender: { routes: ['/', '/about'] },
     // This app is fully prerendered (no server routes), so `generate` never
     // emits a Worker script. Left at its default, Nitro's cloudflare-module
     // preset still unconditionally points `main` at a `.output/server/index.mjs`
