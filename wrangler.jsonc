@@ -1,23 +1,20 @@
 {
   // Cloudflare Workers config for deploying the Nuxt build.
   //
-  // `pnpm run generate` (the Cloudflare build command) prerenders every route
-  // and, under Cloudflare's auto-detected `cloudflare-module` Nitro preset,
-  // emits a tiny Worker at `.output/server/index.mjs` plus the static assets in
-  // `.output/public`. The Worker only serves those prerendered assets (this app
-  // has no server routes) via the ASSETS binding.
+  // This app has no server routes, so `pnpm run generate` prerenders every
+  // route to a static file in `.output/public` and never emits a Worker
+  // script. This config is assets-only (no `main`) so Cloudflare serves those
+  // files directly with zero Worker code running per request.
   //
-  // This file exists so a bare `npx wrangler deploy` run from the repo root
-  // resolves `main`/`assets` correctly. Without it, Wrangler falls back to
-  // Nitro's generated `.output/server/wrangler.json`, whose relative `main:
-  // "index.mjs"` resolves against the repo root and fails with
+  // `nitro.cloudflare.deployConfig` is set to `false` in `nuxt.config.ts` so
+  // Nitro's cloudflare-module preset doesn't try to auto-manage this file: by
+  // default it unconditionally points `main` at a `.output/server/index.mjs`
+  // that doesn't exist for a fully static build, which breaks deploy with
   // "entry-point file at index.mjs was not found".
   "name": "tonobody-cc",
-  "main": ".output/server/index.mjs",
   "compatibility_date": "2024-11-01",
-  "compatibility_flags": ["nodejs_compat"],
   "assets": {
-    "binding": "ASSETS",
-    "directory": ".output/public"
+    "directory": ".output/public",
+    "not_found_handling": "404-page"
   }
 }

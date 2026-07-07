@@ -83,15 +83,15 @@ pnpm test:e2e
 
 ## Deploying (Cloudflare Workers)
 
-There's no server-side logic anywhere in this app — no API routes, no server-only data — so every route is prerendered to a static file. When Cloudflare builds it, Nuxt/Nitro auto-selects the `cloudflare-module` preset and wraps those static files in a tiny Worker whose only job is to serve them (via a Workers **Static Assets** binding). You deploy that Worker; there's no separately-hosted origin.
+There's no server-side logic anywhere in this app — no API routes, no server-only data — so `pnpm run generate` prerenders every route to a static file in `.output/public` and no Worker script is ever built. This deploys as an **assets-only Worker**: Cloudflare serves those files directly with zero Worker code running per request, via the committed `wrangler.jsonc`.
 
-Deploy is driven by [Wrangler](https://developers.cloudflare.com/workers/wrangler/) with the committed `wrangler.jsonc`. Point a Cloudflare **Workers** project (Workers & Pages → *Create* → *Import a repository* → *Workers*, i.e. "Workers Builds") at this repo with:
+Deploy is driven by [Wrangler](https://developers.cloudflare.com/workers/wrangler/). Point a Cloudflare **Workers** project (Workers & Pages → *Create* → *Import a repository* → *Workers*, i.e. "Workers Builds") at this repo with:
 
 - **Build command:** `pnpm run generate`
 - **Deploy command:** `npx wrangler deploy`
 - **Node version:** 22 (pinned in `.node-version`; Cloudflare also picks up `packageManager` for pnpm automatically)
 
-`wrangler.jsonc` at the repo root is what makes the bare `npx wrangler deploy` work: it points `main` at `.output/server/index.mjs` and `assets` at `.output/public` with root-relative paths, and enables the `nodejs_compat` flag the Worker needs. Without it, Wrangler falls back to Nitro's generated `.output/server/wrangler.json`, whose relative `main: "index.mjs"` resolves against the repo root and fails the deploy with *"entry-point file at index.mjs was not found."*
+Cloudflare auto-detects Nuxt and builds with Nitro's `cloudflare-module` preset, which by default assumes it's deploying a Worker script and unconditionally points `main` at a `.output/server/index.mjs` — a file that's never generated here, since the app is fully static. Left alone, that breaks deploy with *"entry-point file at index.mjs was not found."* `nitro.cloudflare.deployConfig` is set to `false` in `nuxt.config.ts` so Nitro doesn't try to auto-manage the Cloudflare config, and the committed `wrangler.jsonc` declares an `assets`-only config (no `main`, no binding) instead.
 
 To deploy by hand from your own machine (after `wrangler login`):
 

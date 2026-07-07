@@ -122,7 +122,8 @@ function updateCommandPosition() {
   if (!instance || !shell) return
   const coords = instance.view.coordsAtPos(instance.state.selection.from)
   const bounds = shell.getBoundingClientRect()
-  const menuWidth = Math.min(480, window.innerWidth - 48)
+  const isMobile = window.innerWidth < 640
+  const menuWidth = isMobile ? Math.min(288, window.innerWidth - 32) : Math.min(480, window.innerWidth - 48)
   const left = Math.min(Math.max(coords.left - bounds.left, 0), Math.max(bounds.width - menuWidth, 0))
   commandPosition.value = {
     left,
@@ -196,21 +197,21 @@ defineExpose({ focus, getText })
 
     <div
       v-if="showCommands"
-      class="tv-blob tv-doodle-panel absolute z-10 w-[min(30rem,calc(100vw-3rem))] overflow-hidden"
+      class="tv-blob tv-doodle-panel absolute z-10 w-[min(18rem,calc(100vw-2rem))] overflow-hidden sm:w-[min(30rem,calc(100vw-3rem))]"
       :style="commandStyle"
       role="listbox"
     >
       <div
         v-for="(command, index) in filteredCommands"
         :key="command.name"
-        class="grid grid-cols-[96px_1fr] gap-3 px-4 py-3 text-left text-sm"
+        class="grid grid-cols-[72px_1fr] gap-2 px-3 py-2 text-left text-xs sm:grid-cols-[96px_1fr] sm:gap-3 sm:px-4 sm:py-3 sm:text-sm"
         :class="index === highlightedCommand ? 'bg-[var(--tv-chip)] text-[var(--tv-text)]' : 'text-[var(--tv-muted)]'"
         role="option"
         :aria-selected="index === highlightedCommand"
         @mousedown.prevent="runCommand(command)"
       >
-        <code class="font-mono text-xs text-[var(--tv-text)]">/{{ command.name }}</code>
-        <span class="font-doodle text-base">{{ command.hint }}</span>
+        <code class="font-mono text-[11px] text-[var(--tv-text)] sm:text-xs">/{{ command.name }}</code>
+        <span class="font-doodle text-sm sm:text-base">{{ command.hint }}</span>
       </div>
     </div>
   </div>
