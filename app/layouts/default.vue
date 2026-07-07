@@ -1,5 +1,5 @@
 <template>
-  <div class="dark min-h-screen bg-neutral-950 text-stone-100">
+  <div class="min-h-screen bg-[var(--tv-bg)] text-[var(--tv-text)]">
     <main>
       <slot />
     </main>

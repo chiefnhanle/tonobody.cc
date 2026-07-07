@@ -6,8 +6,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace']
+        sans: ['Patrick Hand', 'cursive'],
+        mono: ['Patrick Hand', 'cursive'],
+        doodle: ['Patrick Hand', 'cursive']
       }
     }
   }

@@ -10,12 +10,12 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   'update:modelValue': [value: string]
-  'line-count': [count: number]
   'char-count': [count: number]
   'submit-request': []
   'help-request': []
   'bar-request': []
   'ghost-request': []
+  'theme-request': []
 }>()
 
 interface Command {
@@ -32,9 +32,10 @@ const editorShell = ref<HTMLElement | null>(null)
 const isEmpty = ref(true)
 
 const commands = computed<Command[]>(() => [
-  { name: 'send', hint: 'Release everything and reset the page', run: () => emit('submit-request') },
+  { name: 'scrap', hint: 'Release everything and reset the page', run: () => emit('submit-request') },
   { name: 'bar', hint: 'Adjust how big the goal bar is', run: () => emit('bar-request') },
   { name: 'ghost', hint: 'Add your own starting prompts', run: () => emit('ghost-request') },
+  { name: 'theme', hint: 'Pick a color scheme', run: () => emit('theme-request') },
   { name: 'help', hint: 'Show every command', run: () => emit('help-request') },
   { name: 'bold', hint: 'Toggle bold text', run: () => editor.value?.chain().focus().toggleBold().run() },
   { name: 'italic', hint: 'Toggle italic text', run: () => editor.value?.chain().focus().toggleItalic().run() },
@@ -85,29 +86,23 @@ const editor = useEditor({
   },
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
-    emitCounts()
+    emitCharCount()
     updateCommandState()
   },
   onSelectionUpdate: updateCommandState
 })
 
-function emitCounts() {
+function emitCharCount() {
   const instance = editor.value
   if (!instance) return
   isEmpty.value = instance.isEmpty
-  let lineCount = 0
-  instance.state.doc.descendants((node) => {
-    if (node.isTextblock && node.textContent.trim().length > 0) lineCount++
-    return true
-  })
-  emit('line-count', lineCount)
   emit('char-count', instance.getText().length)
 }
 
 watch(() => props.modelValue, (value) => {
   if (editor.value && value !== editor.value.getHTML()) {
     editor.value.commands.setContent(value || '<p></p>', false)
-    emitCounts()
+    emitCharCount()
   }
 })
 
@@ -176,7 +171,7 @@ defineExpose({ focus })
   <div ref="editorShell" class="relative">
     <div
       v-if="isEmpty && visibleGhosts.length"
-      class="pointer-events-none absolute inset-x-0 top-0 select-none pt-4 text-xl leading-9"
+      class="pointer-events-none absolute inset-x-0 top-0 select-none"
       aria-hidden="true"
     >
       <p
@@ -193,7 +188,7 @@ defineExpose({ focus })
 
     <div
       v-if="showCommands"
-      class="matte-glass absolute z-10 w-[min(30rem,calc(100vw-3rem))] overflow-hidden rounded-xl shadow-2xl shadow-black/50"
+      class="tv-blob tv-doodle-panel absolute z-10 w-[min(30rem,calc(100vw-3rem))] overflow-hidden"
       :style="commandStyle"
       role="listbox"
     >
@@ -201,13 +196,13 @@ defineExpose({ focus })
         v-for="(command, index) in filteredCommands"
         :key="command.name"
         class="grid grid-cols-[96px_1fr] gap-3 px-4 py-3 text-left text-sm"
-        :class="index === highlightedCommand ? 'bg-white/10 text-white' : 'text-stone-400'"
+        :class="index === highlightedCommand ? 'bg-[var(--tv-chip)] text-[var(--tv-text)]' : 'text-[var(--tv-muted)]'"
         role="option"
         :aria-selected="index === highlightedCommand"
         @mousedown.prevent="runCommand(command)"
       >
-        <code class="font-mono text-xs text-stone-200">/{{ command.name }}</code>
-        <span>{{ command.hint }}</span>
+        <code class="font-mono text-xs text-[var(--tv-text)]">/{{ command.name }}</code>
+        <span class="font-doodle text-base">{{ command.hint }}</span>
       </div>
     </div>
   </div>

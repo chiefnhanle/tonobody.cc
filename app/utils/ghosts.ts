@@ -6,6 +6,7 @@
 
 export const DEFAULT_GHOST_LINES: string[] = [
   'Message yourself here…',
+  'Type /scrap when you need a clean slate.',
   "Say the thing you can't say out loud.",
   "Dump it here. It won't be kept.",
   "What's rattling around up there?",
@@ -14,7 +15,7 @@ export const DEFAULT_GHOST_LINES: string[] = [
   'Empty the tab you left open in your head.',
   "Draft the text you'll never send.",
   'Spill it. The page forgets on purpose.',
-  'Name the worry. Fill the bar. Hit send.'
+  'Name the worry. Fill the bar. Hit scrap.'
 ]
 
 /** Pick `count` ghost lines starting at `index`, wrapping around the pool. */

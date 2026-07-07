@@ -1,31 +1,25 @@
 // Pure momentum-bar math. Kept side-effect free so it can be unit tested
 // without a DOM or a running editor.
 //
-// The bar rewards *momentum*: adding lines pushes `fill` up, and time gently
-// pulls it back down. You never lose progress by editing or deleting text —
-// only by pausing. The goal is to type fast enough to outrun the decay and
-// top the bar off.
+// The bar rewards *momentum*: every character you type pushes `fill` up, and
+// time gently pulls it back down. You never lose progress by editing or
+// deleting text — only by pausing. The goal is to type fast enough to outrun
+// the decay and top the bar off.
 
-export const DEFAULT_TARGET = 24
-export const MIN_TARGET = 6
-export const MAX_TARGET = 120
+export const DEFAULT_TARGET = 300
+export const MIN_TARGET = 60
+export const MAX_TARGET = 1500
 
-// How much a single new line adds to the fill.
-export const GAIN_PER_LINE = 1
-
-// How much a single newly typed character adds to the fill. Small on its own,
-// but it means the bar responds to steady typing, not just line breaks.
-export const GAIN_PER_CHAR = 0.03
+// How much a single newly typed character adds to the fill. Every character counts equally.
+export const GAIN_PER_CHAR = 1
 
 // How much fill drains per second. Deliberately gentle — "slowly, slowly".
-// 10x gentler than the original pace, so a short pause doesn't cost much ground.
 export const DECAY_PER_SECOND = 0.04
 
-/** Reward newly added lines. Deleting lines (negative delta) never subtracts. */
-export function applyLineDelta(fill: number, delta: number, gainPerLine = GAIN_PER_LINE): number {
-  if (delta <= 0) return fill
-  return fill + delta * gainPerLine
-}
+// User-adjustable multiplier on DECAY_PER_SECOND (how fast the bar drains).
+export const DEFAULT_DECAY_MULTIPLIER = 6
+export const MIN_DECAY_MULTIPLIER = 0.2
+export const MAX_DECAY_MULTIPLIER = 8
 
 /** Reward newly typed characters. Deleting characters (negative delta) never subtracts. */
 export function applyCharDelta(fill: number, delta: number, gainPerChar = GAIN_PER_CHAR): number {
