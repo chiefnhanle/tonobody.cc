@@ -11,7 +11,7 @@
   // default it unconditionally points `main` at a `.output/server/index.mjs`
   // that doesn't exist for a fully static build, which breaks deploy with
   // "entry-point file at index.mjs was not found".
-  "name": "tonobody-cc",
+  "name": "tonobody",
   "compatibility_date": "2024-11-01",
   "assets": {
     "directory": ".output/public",
