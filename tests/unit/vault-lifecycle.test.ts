@@ -3,7 +3,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { LocalVaultRepository } from '../../server/repositories/local-vault-repository'
-import { createCapture } from '../../server/services/capture-service'
+import { createCapture, updateCapture } from '../../server/services/capture-service'
+import { seedExampleCaptures } from '../../server/services/example-captures-service'
 import { initialiseVault } from '../../server/services/vault-initialisation-service'
 import { rebuildIndex } from '../../server/services/vault-index-service'
 
@@ -32,6 +33,29 @@ describe('vault filesystem lifecycle', () => {
     const second = await createCapture(repo, { title: 'Vector note', html: '<p>body text</p>', attachments: [], maxAttachmentBytes: 1000 })
     expect(first.relativePath).not.toBe(second.relativePath)
     await expect(fs.readFile(path.join(tmp, first.relativePath), 'utf8')).resolves.toContain('status: ready-for-codex')
+  })
+
+  it('updates an existing capture in place when reopened as a draft', async () => {
+    await initialiseVault(tmp)
+    const repo = new LocalVaultRepository(tmp)
+    const capture = await createCapture(repo, { title: 'Original note', html: '<p>old body</p>', attachments: [], maxAttachmentBytes: 1000 })
+    const updated = await updateCapture(repo, capture.id, { title: 'Edited note', html: '<p>new body</p>', attachments: [], maxAttachmentBytes: 1000 })
+    expect(updated.id).toBe(capture.id)
+    expect(updated.relativePath).toBe(capture.relativePath)
+    const markdown = await fs.readFile(path.join(tmp, capture.relativePath), 'utf8')
+    expect(markdown).toContain('title: "Edited note"')
+    expect(markdown).toContain('new body')
+    expect(markdown).not.toContain('old body')
+  })
+
+  it('seeds example inbox maps idempotently', async () => {
+    await initialiseVault(tmp)
+    const repo = new LocalVaultRepository(tmp)
+    const first = await seedExampleCaptures(repo, 1000)
+    const second = await seedExampleCaptures(repo, 1000)
+    expect(first.created.length).toBeGreaterThan(2)
+    expect(second.created).toHaveLength(0)
+    expect(second.skipped).toContain('Example Map: Constraint Design Loop')
   })
 
   it('copies attachments into the capture attachment folder', async () => {

@@ -1,7 +1,7 @@
 ﻿import path from 'node:path'
 import type { AppState, AttachmentMetadata, CaptureSummary } from '../../shared/types/capture'
 import { APP_VERSION } from '../../shared/constants/vault'
-import { LocalVaultRepository } from '../repositories/local-vault-repository'
+import type { LocalVaultRepository } from '../repositories/local-vault-repository'
 import { parseCaptureMarkdown } from '../utils/frontmatter'
 import { markdownPreview } from '../utils/markdown'
 

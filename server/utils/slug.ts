@@ -11,6 +11,9 @@
 }
 
 export function deriveTitleFromMarkdown(markdown: string) {
+  const heading = markdown.match(/^#{1,3}\s+(.+)$/m)?.[1]?.trim()
+  if (heading) return heading.slice(0, 180)
+
   const text = markdown
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`([^`]+)`/g, '$1')

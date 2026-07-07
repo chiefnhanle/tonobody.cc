@@ -9,11 +9,14 @@ function yamlScalar(value: string) {
 export interface CaptureFrontmatterInput {
   id: string
   created: string
+  updated?: string
   title: string
   attachments: AttachmentMetadata[]
 }
 
 export function buildCaptureMarkdown(input: CaptureFrontmatterInput, body: string) {
+  const trimmedBody = body.trim()
+  const content = /^#{1,3}\s+/.test(trimmedBody) ? trimmedBody : `# ${input.title}\n\n${trimmedBody}`
   const attachmentYaml = input.attachments.length
     ? input.attachments.map(item => [
         `  - relativePath: ${yamlScalar(item.relativePath)}`,
@@ -22,7 +25,7 @@ export function buildCaptureMarkdown(input: CaptureFrontmatterInput, body: strin
         `    sizeBytes: ${item.sizeBytes}`
       ].join('\n')).join('\n')
     : '  []'
-  return `---\nid: ${input.id}\ntype: raw-capture\nstatus: ready-for-codex\ncreated: ${input.created}\nupdated: ${input.created}\ntitle: ${yamlScalar(input.title)}\ntags: []\nprojects: []\nattachments:\n${attachmentYaml}\nsource: ${APP_SOURCE}\nschemaVersion: ${CAPTURE_SCHEMA_VERSION}\n---\n\n# ${input.title}\n\n${body.trim()}\n`
+  return `---\nid: ${input.id}\ntype: raw-capture\nstatus: ready-for-codex\ncreated: ${input.created}\nupdated: ${input.updated || input.created}\ntitle: ${yamlScalar(input.title)}\ntags: []\nprojects: []\nattachments:\n${attachmentYaml}\nsource: ${APP_SOURCE}\nschemaVersion: ${CAPTURE_SCHEMA_VERSION}\n---\n\n${content}\n`
 }
 
 export function parseCaptureMarkdown(markdown: string) {

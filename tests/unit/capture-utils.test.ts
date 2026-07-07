@@ -16,7 +16,7 @@ describe('capture utilities', () => {
   })
 
   it('derives fallback titles from meaningful content', () => {
-    expect(deriveTitleFromMarkdown('## candidate vector\n\nThis should continue')).toBe('Candidate vector This should continue')
+    expect(deriveTitleFromMarkdown('## candidate vector\n\nThis should continue')).toBe('candidate vector')
   })
 
   it('generates capture ids with the required prefix', () => {
@@ -46,6 +46,9 @@ describe('capture utilities', () => {
   it('serialises editor HTML to readable Markdown', () => {
     expect(htmlToMarkdown('<h2>Hello</h2><p><strong>world</strong></p><ul><li>one</li></ul>')).toContain('## Hello')
     expect(htmlToMarkdown('<script>alert(1)</script><p>safe</p>')).toBe('safe')
+    expect(htmlToMarkdown('<p>before</p><figure data-thought-vault-attachment="true"><img src="blob:test"><figcaption>paper.pdf</figcaption></figure><p>after</p>')).toBe('before\n\nafter')
+    expect(htmlToMarkdown('<p>Area <span data-thought-vault-math-inline="true" data-latex="A=\\pi r^2">$A=\\pi r^2$</span></p>')).toBe('Area $A=\\pi r^2$')
+    expect(htmlToMarkdown('<figure data-thought-vault-math-block="true" data-latex="E=mc^2"><code>E=mc^2</code></figure>')).toBe('$$\nE=mc^2\n$$')
   })
 
   it('validates attachment metadata', () => {

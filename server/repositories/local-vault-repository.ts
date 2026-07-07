@@ -52,6 +52,12 @@ export class LocalVaultRepository {
     }
   }
 
+  async writeFile(relativePath: string, content: string | Uint8Array) {
+    const target = this.resolve(relativePath)
+    await fs.mkdir(path.dirname(target), { recursive: true })
+    await fs.writeFile(target, content)
+  }
+
   async readFile(relativePath: string) {
     return fs.readFile(this.resolve(relativePath), 'utf8')
   }

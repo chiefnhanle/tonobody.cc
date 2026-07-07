@@ -12,7 +12,8 @@ export default defineEventHandler(async (event) => {
   try {
     const { attachment, full } = await getAttachment(new LocalVaultRepository(root), id, attachmentId)
     setHeader(event, 'content-type', attachment.contentType)
-    setHeader(event, 'content-disposition', `attachment; filename="${attachment.filename}"`)
+    const disposition = attachment.contentType.startsWith('image/') ? 'inline' : 'attachment'
+    setHeader(event, 'content-disposition', `${disposition}; filename="${attachment.filename}"`)
     return sendStream(event, createReadStream(full))
   } catch {
     fail(404, 'ATTACHMENT_NOT_FOUND', 'Attachment not found.')

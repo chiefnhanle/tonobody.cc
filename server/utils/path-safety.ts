@@ -1,5 +1,7 @@
 ﻿import path from 'node:path'
 
+// Control characters are invalid in portable filenames.
+// eslint-disable-next-line no-control-regex
 const WINDOWS_RESERVED = /[<>:"/\\|?*\u0000-\u001f]/g
 
 export function sanitizeFilename(input: string, fallback = 'file') {

@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import { nanoid } from 'nanoid'
 import type { AttachmentMetadata, CaptureDetail } from '../../shared/types/capture'
 import { ALLOWED_ATTACHMENT_EXTENSIONS } from '../../shared/constants/vault'
-import { LocalVaultRepository } from '../repositories/local-vault-repository'
+import type { LocalVaultRepository } from '../repositories/local-vault-repository'
 import { validateAttachment } from '../schemas/capture'
 import { generateCaptureId } from '../utils/capture-id'
 import { buildCaptureMarkdown, parseCaptureMarkdown } from '../utils/frontmatter'
@@ -87,6 +87,43 @@ export async function createCapture(repo: LocalVaultRepository, input: { title?:
   return { id, title, created: iso, relativePath, attachmentCount: attachmentMetadata.length }
 }
 
+async function writeAttachments(repo: LocalVaultRepository, captureId: string, attachments: IncomingAttachment[], maxAttachmentBytes: number) {
+  const attachmentDir = `00-inbox/attachments/${captureId}`
+  const attachmentMetadata: AttachmentMetadata[] = []
+  for (const attachment of attachments) {
+    const safeName = sanitizeFilename(attachment.filename, 'attachment')
+    const ext = path.extname(safeName).toLowerCase()
+    if (!ALLOWED_ATTACHMENT_EXTENSIONS.includes(ext as never)) throw new Error(`Attachment ${attachment.filename} is not an allowed file type.`)
+    const contentType = contentTypeFor(safeName)
+    const validationError = validateAttachment(safeName, contentType, attachment.data.byteLength, maxAttachmentBytes)
+    if (validationError) throw new Error(`${attachment.filename}: ${validationError}`)
+    await repo.ensureDir(attachmentDir)
+    const uniqueName = await uniqueAttachmentName(repo, attachmentDir, safeName)
+    const relativePath = `${attachmentDir}/${uniqueName}`
+    await repo.writeFileExclusive(relativePath, attachment.data)
+    attachmentMetadata.push({ id: nanoid(10), relativePath, filename: uniqueName, contentType, sizeBytes: attachment.data.byteLength })
+  }
+  return attachmentMetadata
+}
+
+export async function updateCapture(repo: LocalVaultRepository, id: string, input: { title?: string, html: string, attachments: IncomingAttachment[], maxAttachmentBytes: number }) {
+  const index = await getIndex(repo)
+  const relativePath = index.capturePathById[id]
+  if (!relativePath) throw new Error('Capture not found.')
+  const existing = parseCaptureMarkdown(await repo.readFile(relativePath))
+  const body = htmlToMarkdown(input.html)
+  if (!body.trim()) throw new Error('Capture body is required.')
+  const title = (input.title || '').trim() || deriveTitleFromMarkdown(body)
+  const created = String(existing.data.created || formatLocalIso(new Date()))
+  const updated = formatLocalIso(new Date())
+  const attachmentMetadata = await writeAttachments(repo, id, input.attachments, input.maxAttachmentBytes)
+  const markdown = buildCaptureMarkdown({ id, created, updated, title, attachments: attachmentMetadata }, body)
+  await repo.writeFile(relativePath, markdown)
+  await fs.appendFile(safeJoin(repo.root, '.thought-vault/capture-log.jsonl'), `${JSON.stringify({ id, updated, relativePath, attachmentCount: attachmentMetadata.length, action: 'update' })}\n`, 'utf8')
+  await rebuildIndex(repo)
+  return { id, title, created, updated, relativePath, attachmentCount: attachmentMetadata.length }
+}
+
 export async function listCaptures(repo: LocalVaultRepository, query = '') {
   const index = await getIndex(repo)
   const q = query.trim().toLowerCase()
@@ -100,7 +137,15 @@ export async function getCapture(repo: LocalVaultRepository, id: string): Promis
   if (!relativePath) throw new Error('Capture not found.')
   const markdown = await repo.readFile(relativePath)
   const { data, body } = parseCaptureMarkdown(markdown)
-  const attachments = Array.isArray(data.attachments) ? data.attachments.map((item: AttachmentMetadata, index: number) => ({ id: String(index), ...item })) : []
+  const attachments = Array.isArray(data.attachments)
+    ? data.attachments.map((item: AttachmentMetadata, index: number) => ({
+        id: item.id || String(index),
+        relativePath: String(item.relativePath || ''),
+        filename: String(item.filename || ''),
+        contentType: String(item.contentType || 'application/octet-stream'),
+        sizeBytes: Number(item.sizeBytes || 0)
+      }))
+    : []
   return {
     id: String(data.id),
     title: String(data.title || 'Untitled capture'),

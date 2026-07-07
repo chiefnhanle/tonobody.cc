@@ -8,3 +8,4 @@ playwright-report
 .env
 *.log
 .pnpm-store
+*DS_Store

@@ -38,8 +38,23 @@ function inlineMarkdown(html: string) {
     .trim()
 }
 
+function htmlAttribute(attrs: string, name: string) {
+  const match = attrs.match(new RegExp(`${name}=(?:"([^"]*)"|'([^']*)')`, 'i'))
+  return match ? decodeEntities(match[1] || match[2] || '') : ''
+}
+
 export function htmlToMarkdown(html: string) {
-  const clean = sanitizeEditorHtml(html)
+  const withMath = html
+    .replace(/<figure\b([^>]*)data-thought-vault-math-block=["']?true["']?([^>]*)>[\s\S]*?<\/figure>/gi, (_match, before: string, after: string) => {
+      const latex = htmlAttribute(`${before} ${after}`, 'data-latex').trim()
+      return latex ? `\n\n$$\n${latex}\n$$\n\n` : ''
+    })
+    .replace(/<span\b([^>]*)data-thought-vault-math-inline=["']?true["']?([^>]*)>[\s\S]*?<\/span>/gi, (_match, before: string, after: string) => {
+      const latex = htmlAttribute(`${before} ${after}`, 'data-latex').trim()
+      return latex ? `$${latex}$` : ''
+    })
+  const withoutAttachmentCards = withMath.replace(/<figure\b[^>]*data-thought-vault-attachment=["']?true["']?[^>]*>[\s\S]*?<\/figure>/gi, '')
+  const clean = sanitizeEditorHtml(withoutAttachmentCards)
   if (!clean) return ''
   let markdown = clean
     .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/gi, (_, code) => `\n\n\`\`\`\n${decodeEntities(code).trim()}\n\`\`\`\n\n`)
