@@ -47,11 +47,27 @@ body { @apply font-doodle antialiased; background: var(--tv-bg); color: var(--tv
 }
 /* Cozy "doodle border" panels: no fill at all, just a pencil-sketched
    outline with an offset second stroke — like it was drawn straight onto the
-   page rather than a card sitting on top of it. */
+   page rather than a card sitting on top of it. The two offset shadows (one
+   cast well outside the border, one tucked just inside it on the opposite
+   corner) read like a hand going over the same line twice, not quite lining
+   up — a bigger, wobblier version of a single flat drop shadow. The offset
+   itself is scaled to the element via a custom property: compact chrome
+   (the bar, status pill, nav button) keeps the default small offset so the
+   shadow doesn't dwarf the shape, while actual card-sized panels — the ones
+   that also get `.tv-blob`'s asymmetric corners — opt into a bigger one. */
 .tv-doodle-panel {
+  --tv-doodle-offset-x: 3px;
+  --tv-doodle-offset-y: 3.5px;
   background: transparent;
   border: 2px solid var(--tv-ink);
-  box-shadow: 3px 3px 0 0 var(--tv-ink-soft);
+  box-shadow:
+    var(--tv-doodle-offset-x) var(--tv-doodle-offset-y) 0 0 var(--tv-ink-soft),
+    calc(var(--tv-doodle-offset-x) * -0.5) calc(var(--tv-doodle-offset-y) * -0.5) 0 0 var(--tv-ink-soft);
+}
+.tv-blob.tv-doodle-panel {
+  --tv-doodle-offset-x: 6px;
+  --tv-doodle-offset-y: 7px;
+  border-width: 2.5px;
 }
 
 /* Editor surface */

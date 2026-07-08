@@ -9,6 +9,10 @@ export interface CaptureColors {
   bg: string
   text: string
   ink: string
+  chip: string
+  accentA: string
+  accentB: string
+  accentC: string
 }
 
 const WIDTH = 960
@@ -18,6 +22,8 @@ const LINE_HEIGHT = 40
 const FONT = '28px "Patrick Hand", cursive'
 const STAMP_FONT = '16px ui-monospace, monospace'
 const STAMP_COLOR = '#ff7a45' // fixed "camera LED" orange — deliberately theme-independent
+const BAR_HEIGHT = 10
+const BAR_TOP = 40
 
 function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const lines: string[] = []
@@ -62,6 +68,31 @@ function drawCornerBrackets(ctx: CanvasRenderingContext2D, width: number, height
   }
 }
 
+// A thin echo of the on-page momentum bar, so the snapshot captures how full
+// it was at the moment of capture, not just the words.
+function drawMomentumBar(ctx: CanvasRenderingContext2D, width: number, progress: number, colors: CaptureColors) {
+  const trackX = PADDING
+  const trackWidth = width - PADDING * 2
+  const radius = BAR_HEIGHT / 2
+
+  ctx.fillStyle = colors.chip
+  ctx.beginPath()
+  ctx.roundRect(trackX, BAR_TOP, trackWidth, BAR_HEIGHT, radius)
+  ctx.fill()
+
+  const fillWidth = trackWidth * (Math.min(Math.max(progress, 0), 100) / 100)
+  if (fillWidth <= 0) return
+
+  const gradient = ctx.createLinearGradient(trackX, 0, trackX + trackWidth, 0)
+  gradient.addColorStop(0, colors.accentA)
+  gradient.addColorStop(0.55, colors.accentB)
+  gradient.addColorStop(1, colors.accentC)
+  ctx.fillStyle = gradient
+  ctx.beginPath()
+  ctx.roundRect(trackX, BAR_TOP, fillWidth, BAR_HEIGHT, radius)
+  ctx.fill()
+}
+
 function drawGrain(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const dots = Math.floor((width * height) / 900)
   for (let i = 0; i < dots; i++) {
@@ -78,7 +109,7 @@ function timestamp(): string {
 }
 
 /** Build the snapshot canvas. Call `document.fonts.load` first isn't required — this does it. */
-export async function renderCaptureCanvas(text: string, colors: CaptureColors): Promise<HTMLCanvasElement> {
+export async function renderCaptureCanvas(text: string, progress: number, colors: CaptureColors): Promise<HTMLCanvasElement> {
   await document.fonts.load(FONT)
 
   const measurer = document.createElement('canvas').getContext('2d')
@@ -113,6 +144,7 @@ export async function renderCaptureCanvas(text: string, colors: CaptureColors): 
 
   drawGrain(ctx, WIDTH, height)
   drawCornerBrackets(ctx, WIDTH, height, colors.ink)
+  drawMomentumBar(ctx, WIDTH, progress, colors)
 
   // The note itself.
   ctx.fillStyle = colors.text

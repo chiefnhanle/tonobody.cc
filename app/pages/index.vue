@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DEFAULT_GHOST_LINES } from '~/utils/ghosts'
 import {
-  DEFAULT_TARGET, MIN_TARGET, MAX_TARGET,
+  DEFAULT_TARGET, MIN_TARGET, MAX_TARGET, EFFORT_PRESETS,
   DEFAULT_DECAY_MULTIPLIER, MIN_DECAY_MULTIPLIER, MAX_DECAY_MULTIPLIER, DECAY_PER_SECOND,
   applyCharDelta, decay, barPercent
 } from '~/utils/bar'
@@ -122,10 +122,14 @@ async function captureSnapshot() {
     return
   }
   const vars = theme.value.vars
-  const canvas = await renderCaptureCanvas(text, {
+  const canvas = await renderCaptureCanvas(text, progress.value, {
     bg: vars['--tv-bg'],
     text: vars['--tv-text'],
-    ink: vars['--tv-ink']
+    ink: vars['--tv-ink'],
+    chip: vars['--tv-chip'],
+    accentA: vars['--tv-accent-a'],
+    accentB: vars['--tv-accent-b'],
+    accentC: vars['--tv-accent-c']
   })
   downloadCanvas(canvas, `tonobody-${Date.now()}.png`)
   flashStatus('captured — check your downloads')
@@ -185,8 +189,27 @@ async function captureSnapshot() {
         <div v-else-if="modal === 'bar'" class="space-y-6">
           <div>
             <p class="text-sm uppercase tracking-[0.22em] text-[var(--tv-dim)]">Goal bar</p>
-            <h2 class="mt-2 font-doodle text-3xl text-[var(--tv-text)]">How big is the goal?</h2>
-            <p class="mt-2 text-sm text-[var(--tv-dim)]">The bar fills as you type — every character counts — and drains slowly over time. A bigger goal takes more sustained writing to fill.</p>
+            <h2 class="mt-2 font-doodle text-3xl text-[var(--tv-text)]">How much effort?</h2>
+            <p class="mt-2 text-sm text-[var(--tv-dim)]">The bar fills as you type and drains slowly over time. A bigger goal with a faster drain asks more of you — pick a preset, or fine-tune each below.</p>
+          </div>
+          <div class="flex items-center justify-center gap-4">
+            <button
+              v-for="preset in EFFORT_PRESETS"
+              :key="preset.id"
+              type="button"
+              class="flex h-12 w-12 items-center justify-center rounded-full font-doodle text-lg transition-transform hover:-rotate-1 hover:scale-[1.06]"
+              :style="{
+                color: target === preset.target && drainSpeed === preset.drainSpeed ? 'var(--tv-bg)' : 'var(--tv-text)',
+                background: target === preset.target && drainSpeed === preset.drainSpeed ? 'linear-gradient(135deg, var(--tv-accent-a), var(--tv-accent-b), var(--tv-accent-c))' : 'var(--tv-chip)',
+                border: `2px solid ${target === preset.target && drainSpeed === preset.drainSpeed ? 'transparent' : 'var(--tv-ink)'}`
+              }"
+              :aria-label="`Set effort to ${preset.id} (${preset.target} characters, ${preset.drainSpeed}x drain)`"
+              :aria-pressed="target === preset.target && drainSpeed === preset.drainSpeed"
+              :title="`${preset.id} — ${preset.target} chars, ${preset.drainSpeed}x drain`"
+              @click="target = preset.target; drainSpeed = preset.drainSpeed"
+            >
+              {{ preset.label }}
+            </button>
           </div>
           <div class="space-y-3">
             <input
